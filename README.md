@@ -1,5 +1,15 @@
 # MCP Echo Service
 
+[![NimbleTools Registry](https://img.shields.io/badge/NimbleTools-Registry-green)](https://github.com/nimbletoolsinc/mcp-registry)
+[![NimbleBrain Platform](https://img.shields.io/badge/NimbleBrain-Platform-blue)](https://www.nimblebrain.ai)
+[![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?logo=discord&logoColor=white)](https://www.nimblebrain.ai/discord?utm_source=github&utm_medium=readme&utm_campaign=mcp-echo&utm_content=discord-badge)
+
+[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/NimbleBrainInc/mcp-abstract/actions/workflows/ci.yaml/badge.svg)](https://github.com/NimbleBrainInc/mcp-abstract/actions)
+
+## About
+
 A Model Context Protocol (MCP) service that provides echo tools for testing MCP protocol functionality.
 
 ## Features
@@ -199,3 +209,11 @@ From the makers of [NimbleBrain](https://www.nimblebrain.ai).
 ## License
 
 MIT License - see LICENSE file for details.
+
+
+## Links
+
+Part of the [NimbleTools Registry](https://github.com/nimbletoolsinc/mcp-registry) - an open source collection of production-ready MCP servers. For enterprise deployment, check out [NimbleBrain](https://www.nimblebrain.ai).
+
+- [FastMCP Documentation](https://github.com/jlowin/fastmcp)
+- [MCP Documentation](https://modelcontextprotocol.io)

@@ -3,41 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
-.Python
 build/
-develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-.mypy_cache
-
-# PyInstaller
-*.manifest
-*.spec
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
+.Python
 
 # Virtual environments
 .env
@@ -45,33 +14,44 @@ coverage.xml
 env/
 venv/
 ENV/
-env.bak/
-venv.bak/
 
-# UV
-.uv/
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+.pytype/
+
+# Linting
+.ruff_cache/
 
 # IDEs
 .idea/
 .vscode/
-*.swp
-*.swo
-*~
+*.code-workspace
 
 # OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
 
-# Logs
-*.log
+# MCP/Claude
+.claude/
 
-# Docker
-.dockerignore
+# Package managers
+uv.lock
+.uv/
+poetry.lock
+Pipfile.lock
+
+# Secrets
+*.key
+*.pem
+credentials.json
+.secrets/
 
 # Local development
 test_quick.py

@@ -41,7 +41,7 @@ async def echo_message(
         Complete echo response with metadata
     """
     if ctx:
-        ctx.info(f"Echoing message (uppercase={uppercase}): {message[:50]}...")
+        await ctx.info(f"Echoing message (uppercase={uppercase}): {message[:50]}...")
 
     result_message = message.upper() if uppercase else message
 
@@ -72,7 +72,7 @@ async def echo_with_delay(
     delay_seconds = min(float(delay_seconds), 5.0)
 
     if ctx:
-        ctx.info(f"Echoing with {delay_seconds}s delay: {message[:50]}...")
+        await ctx.info(f"Echoing with {delay_seconds}s delay: {message[:50]}...")
 
     start_time = datetime.now(UTC)
     time.sleep(delay_seconds)
@@ -105,7 +105,7 @@ async def echo_json(
     import json
 
     if ctx:
-        ctx.info(f"Echoing JSON data with {len(data)} keys...")
+        await ctx.info(f"Echoing JSON data with {len(data)} keys...")
 
     # Analyze the data structure
     analysis = DataAnalysis(

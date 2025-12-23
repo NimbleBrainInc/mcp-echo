@@ -38,7 +38,7 @@ jobs:
           jq --arg v "${{ steps.version.outputs.version }}" '.version = $v' manifest.json > manifest.tmp.json
           mv manifest.tmp.json manifest.json
 
-      - uses: NimbleBrainInc/mcpb-pack@main
+      - uses: NimbleBrainInc/mcpb-pack@v1
         id: pack
         with:
           output: mcp-echo-v${{ steps.version.outputs.version }}-linux-${{ matrix.arch }}.mcpb

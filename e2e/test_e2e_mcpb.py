@@ -15,24 +15,25 @@ from testcontainers.core.waiting_utils import wait_for_logs
 
 from .conftest import (
     BASE_IMAGE,
-    BUILD_SCRIPT,
     BUNDLE_NAME,
     BUNDLE_VERSION,
     CONTAINER_PORT,
+    PROJECT_ROOT,
 )
 
 
 def build_bundle(output_dir: Path) -> Path:
-    """Build MCPB bundle using the build script."""
+    """Build MCPB bundle using mcpb CLI."""
+    bundle_path = output_dir / f"{BUNDLE_NAME}-v{BUNDLE_VERSION}.mcpb"
     result = subprocess.run(
-        [str(BUILD_SCRIPT), str(output_dir), BUNDLE_VERSION],
+        ["mcpb", "pack", ".", str(bundle_path)],
         capture_output=True,
         text=True,
+        cwd=PROJECT_ROOT,
     )
     if result.returncode != 0:
         raise RuntimeError(f"Bundle build failed: {result.stderr}")
 
-    bundle_path = output_dir / f"{BUNDLE_NAME}-v{BUNDLE_VERSION}.mcpb"
     if not bundle_path.exists():
         raise RuntimeError(f"Bundle not found at {bundle_path}")
 

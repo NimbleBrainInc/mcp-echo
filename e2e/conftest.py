@@ -9,4 +9,3 @@ BUNDLE_NAME = "mcp-echo"
 BUNDLE_VERSION = "0.0.1"
 
 PROJECT_ROOT = Path(__file__).parent.parent
-BUILD_SCRIPT = PROJECT_ROOT / "scripts" / "build-bundle.sh"

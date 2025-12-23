@@ -1,8 +1,8 @@
-# Docker image configuration
-IMAGE_NAME = nimbletools/mcp-echo
-VERSION ?= 1.0.0
+# MCPB bundle configuration
+BUNDLE_NAME = mcp-echo
+VERSION ?= 0.0.1
 
-.PHONY: help install dev-install format lint lint-fix typecheck test test-cov clean check all build-push login release
+.PHONY: help install dev-install format lint lint-fix typecheck test test-cov test-e2e clean check all bundle run run-stdio run-http test-http
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -34,7 +34,7 @@ test: ## Run tests with pytest
 test-cov: ## Run tests with coverage
 	uv run pytest tests/ -v --cov=src/mcp_echo --cov-report=term-missing
 
-test-e2e: ## Run end-to-end Docker tests
+test-e2e: ## Run end-to-end MCPB tests
 	uv run pytest e2e/ -v -s
 
 clean: ## Clean up artifacts
@@ -46,7 +46,7 @@ clean: ## Clean up artifacts
 	find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name ".coverage" -exec rm -rf {} + 2>/dev/null || true
-	docker rmi $(IMAGE_NAME):$(VERSION) $(IMAGE_NAME):latest 2>/dev/null || true
+	rm -rf bundle/ *.mcpb
 
 run: ## Run the MCP server
 	uv run python -m mcp_echo.server
@@ -65,21 +65,19 @@ check: lint typecheck test ## Run all checks
 
 all: clean install format lint typecheck test ## Full workflow
 
-# Docker commands
-docker-build: ## Build Docker image locally
-	docker build -t $(IMAGE_NAME):$(VERSION) -t $(IMAGE_NAME):latest .
+# MCPB bundle commands
+bundle: ## Build MCPB bundle locally
+	@./scripts/build-bundle.sh . $(VERSION)
 
-docker-run: ## Run Docker container
-	docker run -p 8000:8000 $(IMAGE_NAME):$(VERSION)
-
-login: ## Login to Docker Hub
-	docker login
-
-release: ## Build and push multi-platform Docker image
-	docker buildx build --platform linux/amd64,linux/arm64 \
-		-t $(IMAGE_NAME):$(VERSION) \
-		-t $(IMAGE_NAME):latest \
-		--push .
+bundle-run: bundle ## Build and run MCPB bundle locally
+	@echo "Starting bundle with mcpb-python base image..."
+	@python -m http.server 9999 --directory . &
+	@sleep 1
+	docker run --rm \
+		--add-host host.docker.internal:host-gateway \
+		-p 8000:8000 \
+		-e BUNDLE_URL=http://host.docker.internal:9999/$(BUNDLE_NAME)-v$(VERSION).mcpb \
+		ghcr.io/nimblebrain/mcpb-python:3.14
 
 # Aliases
 fmt: format

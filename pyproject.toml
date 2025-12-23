@@ -81,8 +81,10 @@ dev = [
     "pytest>=8.4.2",
     "pytest-asyncio>=0.24.0",
     "pytest-cov>=6.0.0",
+    "pytest-httpserver>=1.1.0",
     "requests>=2.32.0",
     "ruff>=0.13.1",
+    "testcontainers>=4.9.0",
 ]
 
 [project.urls]

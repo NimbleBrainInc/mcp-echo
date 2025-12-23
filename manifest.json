@@ -1,0 +1,17 @@
+{
+  "manifest_version": "0.3",
+  "name": "ai.nimbletools/echo",
+  "version": "0.0.1-dev",
+  "description": "Echo server for testing and debugging MCP connections",
+  "author": {
+    "name": "NimbleBrain Inc"
+  },
+  "server": {
+    "type": "python",
+    "entry_point": "mcp_echo/server.py",
+    "mcp_config": {
+      "command": "python",
+      "args": ["${__dirname}/mcp_echo/server.py"]
+    }
+  }
+}

@@ -90,9 +90,7 @@ async def echo_with_delay(
 
 
 @mcp.tool()
-async def echo_json(
-    data: dict[str, Any], ctx: Context | None = None
-) -> EchoJsonResponse:
+async def echo_json(data: dict[str, Any], ctx: Context | None = None) -> EchoJsonResponse:
     """Echo back structured JSON data with validation and analysis.
 
     Args:

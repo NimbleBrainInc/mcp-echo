@@ -2,7 +2,7 @@
 BUNDLE_NAME = mcp-echo
 VERSION ?= 0.0.1
 
-.PHONY: help install dev-install format lint lint-fix typecheck test test-cov test-e2e clean check all bundle run run-stdio run-http test-http
+.PHONY: help install dev-install format format-check lint lint-fix typecheck test test-cov test-e2e clean check all bundle run run-stdio run-http test-http
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -18,6 +18,9 @@ dev-install: ## Install with dev dependencies
 
 format: ## Format code with ruff
 	uv run ruff format src/ tests/
+
+format-check: ## Check code formatting with ruff
+	uv run ruff format --check src/ tests/
 
 lint: ## Lint code with ruff
 	uv run ruff check src/ tests/
@@ -61,7 +64,7 @@ test-http: ## Test HTTP server is running
 	@echo "Testing health endpoint..."
 	@curl -s http://localhost:8000/health | grep -q "healthy" && echo "✓ Server is healthy" || echo "✗ Server not responding"
 
-check: lint typecheck test ## Run all checks
+check: format-check lint typecheck test ## Run all checks
 
 all: clean install format lint typecheck test ## Full workflow
 

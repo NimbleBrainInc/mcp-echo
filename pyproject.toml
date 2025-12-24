@@ -1,6 +1,6 @@
 [project]
 name = "mcp-echo"
-version = "1.0.0"
+version = "1.1.0"
 description = "Echo MCP Server"
 readme = "README.md"
 license = {text = "MIT"}

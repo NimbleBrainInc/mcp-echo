@@ -5,9 +5,9 @@ from datetime import UTC, datetime
 from typing import Any
 
 from dotenv import load_dotenv
-from fastapi import Request
-from fastapi.responses import JSONResponse
-from mcp.server.fastmcp import Context, FastMCP
+from fastmcp import Context, FastMCP
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from .api_models import DataAnalysis, EchoDelayResponse, EchoJsonResponse, EchoMessageResponse
 
@@ -28,7 +28,7 @@ async def health_check(request: Request) -> JSONResponse:
 # MCP Tools
 @mcp.tool()
 async def echo_message(
-    message: str, uppercase: bool = False, ctx: Context[Any, Any, Any] | None = None
+    message: str, uppercase: bool = False, ctx: Context | None = None
 ) -> EchoMessageResponse:
     """Echo back a message with optional formatting.
 
@@ -56,7 +56,7 @@ async def echo_message(
 
 @mcp.tool()
 async def echo_with_delay(
-    message: str, delay_seconds: float = 1.0, ctx: Context[Any, Any, Any] | None = None
+    message: str, delay_seconds: float = 1.0, ctx: Context | None = None
 ) -> EchoDelayResponse:
     """Echo back a message after a simulated delay.
 
@@ -91,7 +91,7 @@ async def echo_with_delay(
 
 @mcp.tool()
 async def echo_json(
-    data: dict[str, Any], ctx: Context[Any, Any, Any] | None = None
+    data: dict[str, Any], ctx: Context | None = None
 ) -> EchoJsonResponse:
     """Echo back structured JSON data with validation and analysis.
 
@@ -123,14 +123,5 @@ async def echo_json(
     )
 
 
-# Create ASGI application for uvicorn
-app = mcp.streamable_http_app()
-
-
-# Cleanup on shutdown
-@app.on_event("shutdown")
-async def shutdown_event() -> None:
-    """Clean up resources on server shutdown."""
-    # Echo server doesn't maintain persistent connections
-    # but we include this for consistency
-    pass
+# Create ASGI application for deployment
+app = mcp.http_app()

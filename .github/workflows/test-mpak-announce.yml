@@ -11,14 +11,6 @@ on:
         description: 'Version to announce (must match an existing release, e.g., 0.1.0)'
         required: true
         default: '0.1.0'
-      platform:
-        description: 'Platform (linux-amd64 or linux-arm64)'
-        required: true
-        default: 'linux-amd64'
-        type: choice
-        options:
-          - linux-amd64
-          - linux-arm64
 
 permissions:
   id-token: write
@@ -35,37 +27,6 @@ jobs:
         run: |
           jq --arg v "${{ inputs.version }}" '.version = $v' manifest.json > manifest.tmp.json
           mv manifest.tmp.json manifest.json
-
-      - name: Get Release Asset Info
-        id: asset
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          # Get asset info from the release
-          ASSET_NAME="mcp-echo-v${{ inputs.version }}-${{ inputs.platform }}.mcpb"
-          echo "Looking for asset: $ASSET_NAME"
-
-          ASSET_INFO=$(gh release view "v${{ inputs.version }}" --json assets \
-            | jq -r --arg name "$ASSET_NAME" '.assets[] | select(.name == $name)')
-
-          if [ -z "$ASSET_INFO" ]; then
-            echo "Asset not found: $ASSET_NAME"
-            gh release view "v${{ inputs.version }}" --json assets | jq '.assets[].name'
-            exit 1
-          fi
-
-          URL=$(echo "$ASSET_INFO" | jq -r '.url')
-          SIZE=$(echo "$ASSET_INFO" | jq -r '.size')
-          # GitHub includes digest in format "sha256:xxxx"
-          SHA256=$(echo "$ASSET_INFO" | jq -r '.digest' | sed 's/sha256://')
-
-          echo "url=$URL" >> $GITHUB_OUTPUT
-          echo "size=$SIZE" >> $GITHUB_OUTPUT
-          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
-
-          echo "Asset URL: $URL"
-          echo "Asset size: $SIZE"
-          echo "Asset SHA256: $SHA256"
 
       - name: Get OIDC Token
         id: oidc
@@ -86,25 +47,21 @@ jobs:
           MPAK_API: ${{ inputs.mpak_api_url }}
         run: |
           PKG_NAME=$(jq -r '.name' manifest.json)
-          echo "Announcing $PKG_NAME v${{ inputs.version }} to $MPAK_API"
+          RELEASE_TAG="v${{ inputs.version }}"
+          echo "Announcing $PKG_NAME v${{ inputs.version }} (release: $RELEASE_TAG) to $MPAK_API"
 
           # Build JSON payload using jq to avoid escaping issues
+          # The announce endpoint will discover all .mcpb artifacts from the release
           PAYLOAD=$(jq -n \
             --arg name "$PKG_NAME" \
             --arg version "${{ inputs.version }}" \
             --slurpfile manifest manifest.json \
-            --arg url "${{ steps.asset.outputs.url }}" \
-            --arg sha256 "${{ steps.asset.outputs.sha256 }}" \
-            --argjson size ${{ steps.asset.outputs.size }} \
+            --arg release_tag "$RELEASE_TAG" \
             '{
               name: $name,
               version: $version,
               manifest: $manifest[0],
-              artifact: {
-                url: $url,
-                sha256: $sha256,
-                size: $size
-              }
+              release_tag: $release_tag
             }')
 
           echo "Payload:"

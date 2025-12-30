@@ -22,13 +22,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Update manifest for test
+      - name: Update manifest version
         run: |
-          # Update manifest with test version and OIDC-compatible name
-          # Package scope must match GitHub org for OIDC: @nimblebraininc/...
-          jq --arg v "${{ inputs.version }}" \
-             --arg n "@nimblebraininc/echo-test" \
-             '.version = $v | .name = $n' manifest.json > manifest.tmp.json
+          # Update manifest with test version
+          jq --arg v "${{ inputs.version }}" '.version = $v' manifest.json > manifest.tmp.json
           mv manifest.tmp.json manifest.json
           cat manifest.json
 
@@ -108,19 +105,23 @@ jobs:
         run: |
           echo "Announcing to $MPAK_API/v1/bundles/announce"
 
+          # Get package name from manifest
+          PKG_NAME=$(jq -r '.name' manifest.json)
+          echo "Package name: $PKG_NAME"
+
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$MPAK_API/v1/bundles/announce" \
             -H "Authorization: Bearer $OIDC_TOKEN" \
             -H "Content-Type: application/json" \
-            -d '{
-              "name": "@nimblebraininc/echo-test",
-              "version": "${{ inputs.version }}",
-              "manifest": ${{ steps.manifest.outputs.manifest }},
-              "artifact": {
-                "url": "${{ steps.upload.outputs.url }}",
-                "sha256": "${{ steps.hash.outputs.sha256 }}",
-                "size": ${{ steps.hash.outputs.size }}
+            -d "{
+              \"name\": \"$PKG_NAME\",
+              \"version\": \"${{ inputs.version }}\",
+              \"manifest\": ${{ steps.manifest.outputs.manifest }},
+              \"artifact\": {
+                \"url\": \"${{ steps.upload.outputs.url }}\",
+                \"sha256\": \"${{ steps.hash.outputs.sha256 }}\",
+                \"size\": ${{ steps.hash.outputs.size }}
               }
-            }')
+            }")
 
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
           BODY=$(echo "$RESPONSE" | sed '$d')

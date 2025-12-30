@@ -1,6 +1,6 @@
 {
   "manifest_version": "0.3",
-  "name": "ai.nimbletools/echo",
+  "name": "@nimblebraininc/echo",
   "version": "0.1.0",
   "description": "Echo server for testing and debugging MCP connections",
   "author": {

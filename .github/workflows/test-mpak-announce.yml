@@ -4,57 +4,68 @@ on:
   workflow_dispatch:
     inputs:
       mpak_api_url:
-        description: 'mpak API URL (e.g., https://xxxx.ngrok.io for local testing)'
+        description: 'mpak API URL (e.g., https://xxxx.ngrok.app for local testing)'
         required: true
         default: 'https://api.mpak.dev'
       version:
-        description: 'Test version (e.g., 0.0.1-test.1)'
+        description: 'Version to announce (must match an existing release, e.g., 0.1.0)'
         required: true
-        default: '0.0.1-test.1'
+        default: '0.1.0'
+      platform:
+        description: 'Platform (linux-amd64 or linux-arm64)'
+        required: true
+        default: 'linux-amd64'
+        type: choice
+        options:
+          - linux-amd64
+          - linux-arm64
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
-  build-and-announce:
+  announce:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Update manifest version
-        run: |
-          # Update manifest with test version
-          jq --arg v "${{ inputs.version }}" '.version = $v' manifest.json > manifest.tmp.json
-          mv manifest.tmp.json manifest.json
-          cat manifest.json
-
-      - name: Build bundle
-        uses: NimbleBrainInc/mcpb-pack@v1
-        id: pack
         with:
-          output: echo-test-${{ inputs.version }}.mcpb
+          ref: v${{ inputs.version }}
 
-      - name: Calculate SHA256
-        id: hash
+      - name: Get Release Asset Info
+        id: asset
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          SHA256=$(sha256sum ${{ steps.pack.outputs.bundle-path }} | cut -d' ' -f1)
-          SIZE=$(stat -c%s ${{ steps.pack.outputs.bundle-path }})
-          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+          # Get asset info from the release
+          ASSET_NAME="mcp-echo-v${{ inputs.version }}-${{ inputs.platform }}.mcpb"
+          echo "Looking for asset: $ASSET_NAME"
+
+          ASSET_INFO=$(gh release view "v${{ inputs.version }}" --json assets \
+            | jq -r --arg name "$ASSET_NAME" '.assets[] | select(.name == $name)')
+
+          if [ -z "$ASSET_INFO" ]; then
+            echo "Asset not found: $ASSET_NAME"
+            gh release view "v${{ inputs.version }}" --json assets | jq '.assets[].name'
+            exit 1
+          fi
+
+          URL=$(echo "$ASSET_INFO" | jq -r '.url')
+          SIZE=$(echo "$ASSET_INFO" | jq -r '.size')
+          # GitHub includes digest in format "sha256:xxxx"
+          SHA256=$(echo "$ASSET_INFO" | jq -r '.digest' | sed 's/sha256://')
+
+          echo "url=$URL" >> $GITHUB_OUTPUT
           echo "size=$SIZE" >> $GITHUB_OUTPUT
-          echo "Bundle SHA256: $SHA256"
-          echo "Bundle size: $SIZE bytes"
+          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
 
-      - name: Upload bundle as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-bundle
-          path: ${{ steps.pack.outputs.bundle-path }}
+          echo "Asset URL: $URL"
+          echo "Asset size: $SIZE"
+          echo "Asset SHA256: $SHA256"
 
       - name: Get OIDC Token
         id: oidc
         run: |
-          echo "Requesting OIDC token for audience: https://mpak.dev"
           TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://mpak.dev" | jq -r '.value')
 
@@ -63,32 +74,7 @@ jobs:
             exit 1
           fi
 
-          echo "Got OIDC token (first 50 chars): ${TOKEN:0:50}..."
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
-
-      - name: Start artifact server
-        id: serve
-        run: |
-          # Start a simple HTTP server to serve the bundle
-          # GitHub artifact URLs require auth, so we serve it ourselves
-          mkdir -p /tmp/serve
-          cp ${{ steps.pack.outputs.bundle-path }} /tmp/serve/
-          cd /tmp/serve
-          python3 -m http.server 8888 &
-          sleep 2
-
-          # Get the public URL via GitHub's network (for self-hosted this would be different)
-          # For now we'll use a workaround with artifact download URL
-          echo "Local server started on port 8888"
-
-      - name: Upload to transfer.sh for public URL
-        id: upload
-        run: |
-          # Upload to transfer.sh to get a public URL
-          UPLOAD_URL=$(curl --upload-file ${{ steps.pack.outputs.bundle-path }} \
-            "https://transfer.sh/echo-test-${{ inputs.version }}.mcpb")
-          echo "Uploaded to: $UPLOAD_URL"
-          echo "url=$UPLOAD_URL" >> $GITHUB_OUTPUT
 
       - name: Read manifest
         id: manifest
@@ -97,17 +83,16 @@ jobs:
           echo "manifest<<EOF" >> $GITHUB_OUTPUT
           echo "$MANIFEST" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+          echo "Manifest:"
+          cat manifest.json
 
       - name: Announce to mpak
         env:
           OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
           MPAK_API: ${{ inputs.mpak_api_url }}
         run: |
-          echo "Announcing to $MPAK_API/v1/bundles/announce"
-
-          # Get package name from manifest
           PKG_NAME=$(jq -r '.name' manifest.json)
-          echo "Package name: $PKG_NAME"
+          echo "Announcing $PKG_NAME v${{ inputs.version }} to $MPAK_API"
 
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$MPAK_API/v1/bundles/announce" \
             -H "Authorization: Bearer $OIDC_TOKEN" \
@@ -117,9 +102,9 @@ jobs:
               \"version\": \"${{ inputs.version }}\",
               \"manifest\": ${{ steps.manifest.outputs.manifest }},
               \"artifact\": {
-                \"url\": \"${{ steps.upload.outputs.url }}\",
-                \"sha256\": \"${{ steps.hash.outputs.sha256 }}\",
-                \"size\": ${{ steps.hash.outputs.size }}
+                \"url\": \"${{ steps.asset.outputs.url }}\",
+                \"sha256\": \"${{ steps.asset.outputs.sha256 }}\",
+                \"size\": ${{ steps.asset.outputs.size }}
               }
             }")
 
@@ -131,8 +116,5 @@ jobs:
           echo "$BODY" | jq . || echo "$BODY"
 
           if [ "$HTTP_CODE" -ge 400 ]; then
-            echo "Announce failed!"
             exit 1
           fi
-
-          echo "Announce successful!"

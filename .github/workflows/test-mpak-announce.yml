@@ -28,9 +28,13 @@ jobs:
   announce:
     runs-on: ubuntu-latest
     steps:
+      # Checkout main to get the updated manifest (tags may have old package names)
       - uses: actions/checkout@v4
-        with:
-          ref: v${{ inputs.version }}
+
+      - name: Update manifest version
+        run: |
+          jq --arg v "${{ inputs.version }}" '.version = $v' manifest.json > manifest.tmp.json
+          mv manifest.tmp.json manifest.json
 
       - name: Get Release Asset Info
         id: asset

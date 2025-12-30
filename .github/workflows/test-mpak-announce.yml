@@ -1,0 +1,137 @@
+name: Test mpak Announce
+
+on:
+  workflow_dispatch:
+    inputs:
+      mpak_api_url:
+        description: 'mpak API URL (e.g., https://xxxx.ngrok.io for local testing)'
+        required: true
+        default: 'https://api.mpak.dev'
+      version:
+        description: 'Test version (e.g., 0.0.1-test.1)'
+        required: true
+        default: '0.0.1-test.1'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-announce:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update manifest for test
+        run: |
+          # Update manifest with test version and OIDC-compatible name
+          # Package scope must match GitHub org for OIDC: @nimblebraininc/...
+          jq --arg v "${{ inputs.version }}" \
+             --arg n "@nimblebraininc/echo-test" \
+             '.version = $v | .name = $n' manifest.json > manifest.tmp.json
+          mv manifest.tmp.json manifest.json
+          cat manifest.json
+
+      - name: Build bundle
+        uses: NimbleBrainInc/mcpb-pack@v1
+        id: pack
+        with:
+          output: echo-test-${{ inputs.version }}.mcpb
+
+      - name: Calculate SHA256
+        id: hash
+        run: |
+          SHA256=$(sha256sum ${{ steps.pack.outputs.bundle-path }} | cut -d' ' -f1)
+          SIZE=$(stat -c%s ${{ steps.pack.outputs.bundle-path }})
+          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+          echo "size=$SIZE" >> $GITHUB_OUTPUT
+          echo "Bundle SHA256: $SHA256"
+          echo "Bundle size: $SIZE bytes"
+
+      - name: Upload bundle as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-bundle
+          path: ${{ steps.pack.outputs.bundle-path }}
+
+      - name: Get OIDC Token
+        id: oidc
+        run: |
+          echo "Requesting OIDC token for audience: https://mpak.dev"
+          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://mpak.dev" | jq -r '.value')
+
+          if [ "$TOKEN" = "null" ] || [ -z "$TOKEN" ]; then
+            echo "Failed to get OIDC token"
+            exit 1
+          fi
+
+          echo "Got OIDC token (first 50 chars): ${TOKEN:0:50}..."
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
+
+      - name: Start artifact server
+        id: serve
+        run: |
+          # Start a simple HTTP server to serve the bundle
+          # GitHub artifact URLs require auth, so we serve it ourselves
+          mkdir -p /tmp/serve
+          cp ${{ steps.pack.outputs.bundle-path }} /tmp/serve/
+          cd /tmp/serve
+          python3 -m http.server 8888 &
+          sleep 2
+
+          # Get the public URL via GitHub's network (for self-hosted this would be different)
+          # For now we'll use a workaround with artifact download URL
+          echo "Local server started on port 8888"
+
+      - name: Upload to transfer.sh for public URL
+        id: upload
+        run: |
+          # Upload to transfer.sh to get a public URL
+          UPLOAD_URL=$(curl --upload-file ${{ steps.pack.outputs.bundle-path }} \
+            "https://transfer.sh/echo-test-${{ inputs.version }}.mcpb")
+          echo "Uploaded to: $UPLOAD_URL"
+          echo "url=$UPLOAD_URL" >> $GITHUB_OUTPUT
+
+      - name: Read manifest
+        id: manifest
+        run: |
+          MANIFEST=$(cat manifest.json)
+          echo "manifest<<EOF" >> $GITHUB_OUTPUT
+          echo "$MANIFEST" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Announce to mpak
+        env:
+          OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
+          MPAK_API: ${{ inputs.mpak_api_url }}
+        run: |
+          echo "Announcing to $MPAK_API/v1/bundles/announce"
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$MPAK_API/v1/bundles/announce" \
+            -H "Authorization: Bearer $OIDC_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "name": "@nimblebraininc/echo-test",
+              "version": "${{ inputs.version }}",
+              "manifest": ${{ steps.manifest.outputs.manifest }},
+              "artifact": {
+                "url": "${{ steps.upload.outputs.url }}",
+                "sha256": "${{ steps.hash.outputs.sha256 }}",
+                "size": ${{ steps.hash.outputs.size }}
+              }
+            }')
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response:"
+          echo "$BODY" | jq . || echo "$BODY"
+
+          if [ "$HTTP_CODE" -ge 400 ]; then
+            echo "Announce failed!"
+            exit 1
+          fi
+
+          echo "Announce successful!"

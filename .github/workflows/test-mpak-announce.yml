@@ -80,16 +80,6 @@ jobs:
 
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
 
-      - name: Read manifest
-        id: manifest
-        run: |
-          MANIFEST=$(cat manifest.json)
-          echo "manifest<<EOF" >> $GITHUB_OUTPUT
-          echo "$MANIFEST" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          echo "Manifest:"
-          cat manifest.json
-
       - name: Announce to mpak
         env:
           OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
@@ -98,19 +88,32 @@ jobs:
           PKG_NAME=$(jq -r '.name' manifest.json)
           echo "Announcing $PKG_NAME v${{ inputs.version }} to $MPAK_API"
 
+          # Build JSON payload using jq to avoid escaping issues
+          PAYLOAD=$(jq -n \
+            --arg name "$PKG_NAME" \
+            --arg version "${{ inputs.version }}" \
+            --slurpfile manifest manifest.json \
+            --arg url "${{ steps.asset.outputs.url }}" \
+            --arg sha256 "${{ steps.asset.outputs.sha256 }}" \
+            --argjson size ${{ steps.asset.outputs.size }} \
+            '{
+              name: $name,
+              version: $version,
+              manifest: $manifest[0],
+              artifact: {
+                url: $url,
+                sha256: $sha256,
+                size: $size
+              }
+            }')
+
+          echo "Payload:"
+          echo "$PAYLOAD" | jq .
+
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$MPAK_API/v1/bundles/announce" \
             -H "Authorization: Bearer $OIDC_TOKEN" \
             -H "Content-Type: application/json" \
-            -d "{
-              \"name\": \"$PKG_NAME\",
-              \"version\": \"${{ inputs.version }}\",
-              \"manifest\": ${{ steps.manifest.outputs.manifest }},
-              \"artifact\": {
-                \"url\": \"${{ steps.asset.outputs.url }}\",
-                \"sha256\": \"${{ steps.asset.outputs.sha256 }}\",
-                \"size\": ${{ steps.asset.outputs.size }}
-              }
-            }")
+            -d "$PAYLOAD")
 
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
           BODY=$(echo "$RESPONSE" | sed '$d')

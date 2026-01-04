@@ -13,10 +13,15 @@ jobs:
     strategy:
       matrix:
         include:
-          - arch: amd64
+          - os: linux
+            arch: amd64
             runner: ubuntu-latest
-          - arch: arm64
+          - os: linux
+            arch: arm64
             runner: ubuntu-24.04-arm
+          - os: darwin
+            arch: arm64
+            runner: macos-latest
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
@@ -30,23 +35,4 @@ jobs:
 
       - uses: NimbleBrainInc/mcpb-pack@v2
         with:
-          output: "{name}-{version}-linux-${{ matrix.arch }}.mcpb"
-          announce: false
-
-  announce:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Update manifest version
-        run: |
-          VERSION="${{ github.event.release.tag_name }}"
-          VERSION="${VERSION#v}"
-          jq --arg v "$VERSION" '.version = $v' manifest.json > manifest.tmp.json
-          mv manifest.tmp.json manifest.json
-
-      - uses: NimbleBrainInc/mcpb-pack@v2
-        with:
-          build: false
-          announce: true
+          output: "{name}-{version}-${{ matrix.os }}-${{ matrix.arch }}.mcpb"

@@ -8,12 +8,10 @@
   },
   "server": {
     "type": "python",
-    "entry_point": "mcp_echo/server.py",
+    "entry_point": "mcp_echo.server",
     "mcp_config": {
       "command": "python",
-      "args": [
-        "${__dirname}/mcp_echo/server.py"
-      ]
+      "args": ["-m", "mcp_echo.server"]
     }
   }
 }

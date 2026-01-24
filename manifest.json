@@ -1,7 +1,7 @@
 {
   "manifest_version": "0.3",
   "name": "@nimblebraininc/echo",
-  "version": "0.1.0",
+  "version": "0.1.3",
   "description": "Echo server for testing and debugging MCP connections",
   "author": {
     "name": "NimbleBrain Inc"

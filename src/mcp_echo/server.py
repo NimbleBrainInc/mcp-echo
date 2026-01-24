@@ -1,5 +1,8 @@
 """Echo MCP Server - FastMCP Implementation."""
 
+import logging
+import signal
+import sys
 import time
 from datetime import UTC, datetime
 from typing import Any
@@ -11,11 +14,37 @@ from starlette.responses import JSONResponse
 
 from .api_models import DataAnalysis, EchoDelayResponse, EchoJsonResponse, EchoMessageResponse
 
+# Debug logging for container diagnostics
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    stream=sys.stderr,
+)
+logger = logging.getLogger("mcp_echo")
+
+
+# Signal handler for debugging
+def _signal_handler(signum, frame):
+    logger.warning("Received signal %s (%s)", signum, signal.Signals(signum).name)
+
+
+# Register signal handlers to see what signals we receive
+for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+    try:
+        signal.signal(sig, _signal_handler)
+        logger.debug("Registered handler for %s", sig.name)
+    except (ValueError, OSError) as e:
+        logger.debug("Could not register handler for %s: %s", sig.name, e)
+
+logger.info("Echo server module loading...")
+
 # Load environment variables from .env file
 load_dotenv()
 
 # Create MCP server
+logger.debug("Creating FastMCP instance...")
 mcp = FastMCP("Echo")
+logger.debug("FastMCP instance created")
 
 
 # Health endpoint for HTTP transport
@@ -122,9 +151,11 @@ async def echo_json(data: dict[str, Any], ctx: Context | None = None) -> EchoJso
 
 
 # Create ASGI application for HTTP deployment
+logger.debug("Creating http_app()...")
 app = mcp.http_app()
-
+logger.info("ASGI app created successfully, ready for uvicorn")
 
 # Stdio entrypoint for Claude Desktop / mpak
 if __name__ == "__main__":
+    logger.info("Running in stdio mode")
     mcp.run()

@@ -33,6 +33,7 @@ jobs:
           jq --arg v "$VERSION" '.version = $v' manifest.json > manifest.tmp.json
           mv manifest.tmp.json manifest.json
 
-      - uses: NimbleBrainInc/mcpb-pack@v2
+      # TODO: revert to @v2 after server.json support is merged
+      - uses: NimbleBrainInc/mcpb-pack@feat/server-json
         with:
           output: "{name}-{version}-${{ matrix.os }}-${{ matrix.arch }}.mcpb"

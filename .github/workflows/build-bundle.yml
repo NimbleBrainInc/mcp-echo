@@ -33,9 +33,6 @@ jobs:
           jq --arg v "$VERSION" '.version = $v' manifest.json > manifest.tmp.json
           mv manifest.tmp.json manifest.json
 
-      # TODO: revert to @v2 after server.json support is merged
-      - uses: NimbleBrainInc/mcpb-pack@feat/server-json
+      - uses: NimbleBrainInc/mcpb-pack@v2
         with:
           output: "{name}-{version}-${{ matrix.os }}-${{ matrix.arch }}.mcpb"
-          # TODO: remove after E2E testing
-          announce-url: https://8e687dc4a156.ngrok.app/v1/bundles/announce

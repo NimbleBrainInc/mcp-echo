@@ -2,7 +2,7 @@
   "$schema": "https://schemas.nimblebrain.ai/v1/nimblebrain-server.schema.json",
   "name": "ai.nimblebrain/echo",
   "description": "Echo server for testing and debugging MCP connections",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "title": "Echo MCP Server",
   "repository": {
     "url": "https://github.com/NimbleBrainInc/mcp-echo",

@@ -58,4 +58,8 @@ test_quick.py
 
 # MCPB bundles
 bundle/
+deps/
 *.mcpb
+
+# Scanner reports
+security-report.json

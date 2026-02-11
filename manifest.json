@@ -1,5 +1,5 @@
 {
-  "manifest_version": "0.3",
+  "manifest_version": "0.4",
   "name": "@nimblebraininc/echo",
   "version": "0.1.4",
   "description": "Echo server for testing and debugging MCP connections",
@@ -38,7 +38,14 @@
   ],
   "_meta": {
     "org.mpaktrust": {
-      "mtf_version": "0.1"
+      "mtf_version": "0.1",
+      "permissions": {
+        "filesystem": "read",
+        "network": "none",
+        "environment": "read",
+        "subprocess": "none",
+        "native": "none"
+      }
     }
   }
 }

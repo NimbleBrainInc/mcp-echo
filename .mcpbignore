@@ -6,6 +6,11 @@
 __pycache__/
 *.pyc
 
+# Tool caches
+.mypy_cache/
+.ruff_cache/
+.coverage
+
 # Test files
 tests/
 e2e/
@@ -14,15 +19,24 @@ e2e/
 dist/
 build/
 *.egg-info/
+*.mcpb
 
 # Dev config
 Makefile
 pytest.ini
+pyproject.toml
 .env
 .env.*
 
 # Lock files
 uv.lock
+
+# Scripts
+scripts/
+
+# Claude Code
+.claude/
+CLAUDE.md
 
 # IDE
 .vscode/

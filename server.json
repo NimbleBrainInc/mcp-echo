@@ -1,10 +1,54 @@
 {
-  "name": "@nimblebraininc/echo",
+  "$schema": "https://schemas.nimblebrain.ai/v1/nimblebrain-server.schema.json",
+  "name": "ai.nimblebrain/echo",
   "description": "Echo server for testing and debugging MCP connections",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "title": "Echo MCP Server",
   "repository": {
     "url": "https://github.com/NimbleBrainInc/mcp-echo",
     "source": "https://github.com/NimbleBrainInc/mcp-echo"
+  },
+  "_meta": {
+    "ai.nimblebrain/v1": {
+      "runtime": "python:3.13",
+      "capabilities": {
+        "tools": true,
+        "resources": false,
+        "prompts": false
+      },
+      "display": {
+        "category": "developer-tools",
+        "tags": [
+          "testing",
+          "debugging",
+          "development"
+        ]
+      },
+      "deployment": {
+        "protocol": "http",
+        "port": 8000,
+        "mcpPath": "/mcp"
+      },
+      "container": {
+        "healthCheck": {
+          "path": "/health",
+          "port": 8000
+        }
+      },
+      "resources": {
+        "limits": {
+          "memory": "512Mi",
+          "cpu": "1000m"
+        },
+        "requests": {
+          "memory": "256Mi",
+          "cpu": "250m"
+        }
+      },
+      "scaling": {
+        "minReplicas": 1,
+        "maxReplicas": 3
+      }
+    }
   }
 }

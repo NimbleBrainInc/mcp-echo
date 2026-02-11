@@ -82,6 +82,19 @@ bundle-run: bundle ## Build and run MCPB bundle locally
 		-e BUNDLE_URL=http://host.docker.internal:9999/$(BUNDLE_NAME)-v$(VERSION).mcpb \
 		ghcr.io/nimblebrain/mcpb-python:3.14
 
+bump: ## Bump version across all files (usage: make bump VERSION=0.2.0)
+	@if [ -z "$(VERSION)" ]; then echo "Usage: make bump VERSION=x.y.z"; exit 1; fi
+	@echo "Bumping version to $(VERSION)..."
+	@jq --arg v "$(VERSION)" '.version = $$v' manifest.json > manifest.tmp.json && mv manifest.tmp.json manifest.json
+	@jq --arg v "$(VERSION)" '.version = $$v' server.json > server.tmp.json && mv server.tmp.json server.json
+	@sed -i '' 's/^version = ".*"/version = "$(VERSION)"/' pyproject.toml
+	@sed -i '' 's/^__version__ = ".*"/__version__ = "$(VERSION)"/' src/mcp_echo/__init__.py
+	@echo "Updated:"
+	@echo "  manifest.json:          $$(jq -r .version manifest.json)"
+	@echo "  server.json:            $$(jq -r .version server.json)"
+	@echo "  pyproject.toml:         $$(grep '^version' pyproject.toml)"
+	@echo "  src/mcp_echo/__init__.py: $$(grep '__version__' src/mcp_echo/__init__.py)"
+
 # Aliases
 fmt: format
 t: test

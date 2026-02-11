@@ -24,7 +24,7 @@ logger = logging.getLogger("mcp_echo")
 
 
 # Signal handler for debugging
-def _signal_handler(signum, frame):
+def _signal_handler(signum: int, frame: object) -> None:
     logger.warning("Received signal %s (%s)", signum, signal.Signals(signum).name)
 
 

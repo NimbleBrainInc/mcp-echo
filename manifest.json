@@ -1,17 +1,44 @@
 {
   "manifest_version": "0.3",
   "name": "@nimblebraininc/echo",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Echo server for testing and debugging MCP connections",
   "author": {
-    "name": "NimbleBrain Inc"
+    "name": "NimbleBrain Inc",
+    "email": "hello@nimblebrain.ai"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NimbleBrainInc/mcp-echo"
   },
   "server": {
     "type": "python",
     "entry_point": "mcp_echo.server",
     "mcp_config": {
       "command": "python",
-      "args": ["-m", "mcp_echo.server"]
+      "args": [
+        "-m",
+        "mcp_echo.server"
+      ]
+    }
+  },
+  "tools": [
+    {
+      "name": "echo_message",
+      "description": "Echo back a message with optional formatting"
+    },
+    {
+      "name": "echo_with_delay",
+      "description": "Echo back a message after a simulated delay"
+    },
+    {
+      "name": "echo_json",
+      "description": "Echo back structured JSON data with validation and analysis"
+    }
+  ],
+  "_meta": {
+    "org.mpaktrust": {
+      "mtf_version": "0.1"
     }
   }
 }

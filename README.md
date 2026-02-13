@@ -177,11 +177,14 @@ The server supports HTTP transport with:
 # Install with dev dependencies
 uv sync --group dev
 
-# Run tests
-uv run pytest tests/
+# Run unit tests
+make test
 
 # Run with coverage
-uv run pytest tests/ --cov=mcp_echo
+make test-cov
+
+# Run all checks (format, lint, typecheck, unit tests)
+make check
 
 # Format
 uv run ruff format .
@@ -189,6 +192,23 @@ uv run ruff format .
 # Lint
 uv run ruff check .
 ```
+
+### E2E Tests
+
+End-to-end tests validate the full MCPB bundle lifecycle: building the bundle, deploying it into a Docker container, and calling tools over HTTP.
+
+**Prerequisites:** Docker running, `mcpb` CLI installed (`npm install -g @anthropic-ai/mcpb`)
+
+```bash
+make test-e2e
+```
+
+The tests:
+1. Vendor dependencies for the Docker container's Linux architecture
+2. Build a `.mcpb` bundle with `mcpb pack`
+3. Serve the bundle over HTTP
+4. Start a `nimbletools/mcpb-python` container that downloads and runs the bundle
+5. Verify the `/health` endpoint, MCP tool listing, and tool invocation via streamable HTTP
 
 ## About
 

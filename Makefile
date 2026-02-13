@@ -80,7 +80,7 @@ bundle-run: bundle ## Build and run MCPB bundle locally
 		--add-host host.docker.internal:host-gateway \
 		-p 8000:8000 \
 		-e BUNDLE_URL=http://host.docker.internal:9999/$(BUNDLE_NAME)-v$(VERSION).mcpb \
-		ghcr.io/nimblebrain/mcpb-python:3.14
+		docker.io/nimbletools/mcpb-python:3.14
 
 bump: ## Bump version across all files (usage: make bump VERSION=0.2.0)
 	@if [ -z "$(VERSION)" ]; then echo "Usage: make bump VERSION=x.y.z"; exit 1; fi

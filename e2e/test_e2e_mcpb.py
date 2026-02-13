@@ -1,5 +1,7 @@
 """End-to-end tests for MCPB bundle deployment."""
 
+import json
+import shutil
 import subprocess
 import tempfile
 import time
@@ -16,20 +18,86 @@ from testcontainers.core.waiting_utils import wait_for_logs
 from .conftest import (
     BASE_IMAGE,
     BUNDLE_NAME,
-    BUNDLE_VERSION,
     CONTAINER_PORT,
     PROJECT_ROOT,
+    PYTHON_VERSION,
 )
+
+# Map Docker arch to uv --python-platform values
+_DOCKER_ARCH_TO_UV_PLATFORM = {
+    "x86_64": "x86_64-unknown-linux-gnu",
+    "aarch64": "aarch64-unknown-linux-gnu",
+}
+
+
+def _detect_docker_platform() -> str:
+    """Detect the Docker daemon's architecture and return a uv platform string."""
+    result = subprocess.run(
+        ["docker", "info", "--format", "{{.Architecture}}"],
+        capture_output=True,
+        text=True,
+    )
+    arch = result.stdout.strip()
+    platform = _DOCKER_ARCH_TO_UV_PLATFORM.get(arch)
+    if not platform:
+        raise RuntimeError(
+            f"Unsupported Docker architecture: {arch}. "
+            f"Supported: {list(_DOCKER_ARCH_TO_UV_PLATFORM.keys())}"
+        )
+    return platform
 
 
 def build_bundle(output_dir: Path) -> Path:
-    """Build MCPB bundle using mcpb CLI."""
-    bundle_path = output_dir / f"{BUNDLE_NAME}-v{BUNDLE_VERSION}.mcpb"
+    """Build MCPB bundle with Linux-compatible deps.
+
+    Mirrors the CI pipeline: vendor deps for Linux, then pack.
+    Uses uv's --python-platform flag for cross-platform dep resolution
+    so compiled wheels (pydantic_core, etc.) match the Docker container's
+    OS and architecture, not the host machine's.
+    """
+    # Copy project to a temp build dir so we don't pollute the source tree
+    build_dir = output_dir / "build"
+    shutil.copytree(
+        PROJECT_ROOT,
+        build_dir,
+        ignore=shutil.ignore_patterns(".venv", ".git", "*.pyc", "__pycache__", "e2e"),
+    )
+
+    # Vendor deps for the Docker container's platform
+    deps_dir = build_dir / "deps"
+    if deps_dir.exists():
+        shutil.rmtree(deps_dir)
+
+    docker_platform = _detect_docker_platform()
     result = subprocess.run(
-        ["mcpb", "pack", ".", str(bundle_path)],
+        [
+            "uv",
+            "pip",
+            "install",
+            "--target",
+            str(deps_dir),
+            "--python-platform",
+            docker_platform,
+            "--python-version",
+            PYTHON_VERSION,
+            ".",
+        ],
         capture_output=True,
         text=True,
-        cwd=PROJECT_ROOT,
+        cwd=build_dir,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"Dep vendoring failed: {result.stderr}")
+
+    # Read version from manifest for the bundle filename
+    manifest = json.loads((build_dir / "manifest.json").read_text())
+    version = manifest["version"]
+
+    bundle_path = output_dir / f"{BUNDLE_NAME}-v{version}.mcpb"
+    result = subprocess.run(
+        ["mcpb", "pack", str(build_dir), str(bundle_path)],
+        capture_output=True,
+        text=True,
     )
     if result.returncode != 0:
         raise RuntimeError(f"Bundle build failed: {result.stderr}")

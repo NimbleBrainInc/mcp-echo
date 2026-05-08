@@ -1,12 +1,13 @@
 {
   "manifest_version": "0.4",
   "name": "@nimblebraininc/echo",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Echo server for testing and debugging MCP connections",
   "author": {
     "name": "NimbleBrain Inc",
     "email": "hello@nimblebrain.ai"
   },
+  "icon": "https://static.nimblebrain.ai/icons/echo.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/NimbleBrainInc/mcp-echo"

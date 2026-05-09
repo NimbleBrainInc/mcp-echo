@@ -1,7 +1,7 @@
 {
   "manifest_version": "0.4",
   "name": "@nimblebraininc/echo",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Echo server for testing and debugging MCP connections",
   "author": {
     "name": "NimbleBrain Inc",
@@ -47,6 +47,9 @@
         "subprocess": "none",
         "native": "none"
       }
+    },
+    "dev.mpak/registry": {
+      "name": "ai.nimblebrain/echo"
     }
   }
 }

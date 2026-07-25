@@ -63,3 +63,7 @@ deps/
 
 # Scanner reports
 security-report.json
+
+# jq scratch files — the bump target redirects into these, and the redirect
+# creates them even when jq then fails, so a partial run leaves them behind.
+*.tmp.json

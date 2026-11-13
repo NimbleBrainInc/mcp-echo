@@ -8,13 +8,15 @@ from datetime import UTC, datetime
 from typing import Any
 
 from dotenv import load_dotenv
-from fastmcp import Context, FastMCP
+from fastmcp import FastMCP
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from .api_models import DataAnalysis, EchoDelayResponse, EchoJsonResponse, EchoMessageResponse
 
-# Debug logging for container diagnostics
+# Debug logging for container diagnostics. All logs go to stderr (stdout is reserved for
+# JSON-RPC), never to the client: MCP's logging capability is deprecated as of the
+# 2026-07-28 protocol (SEP-2577).
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -56,21 +58,17 @@ async def health_check(request: Request) -> JSONResponse:
 
 # MCP Tools
 @mcp.tool()
-async def echo_message(
-    message: str, uppercase: bool = False, ctx: Context | None = None
-) -> EchoMessageResponse:
+async def echo_message(message: str, uppercase: bool = False) -> EchoMessageResponse:
     """Echo back a message with optional formatting.
 
     Args:
         message: The message to echo back
         uppercase: Whether to convert the message to uppercase
-        ctx: MCP context
 
     Returns:
         Complete echo response with metadata
     """
-    if ctx:
-        await ctx.info(f"Echoing message (uppercase={uppercase}): {message[:50]}...")
+    logger.info(f"Echoing message (uppercase={uppercase}): {message[:50]}...")
 
     result_message = message.upper() if uppercase else message
 
@@ -84,15 +82,12 @@ async def echo_message(
 
 
 @mcp.tool()
-async def echo_with_delay(
-    message: str, delay_seconds: float = 1.0, ctx: Context | None = None
-) -> EchoDelayResponse:
+async def echo_with_delay(message: str, delay_seconds: float = 1.0) -> EchoDelayResponse:
     """Echo back a message after a simulated delay.
 
     Args:
         message: The message to echo back
         delay_seconds: Delay duration in seconds (max 5.0 seconds)
-        ctx: MCP context
 
     Returns:
         Echo response with timing information
@@ -100,8 +95,7 @@ async def echo_with_delay(
     # Limit delay to maximum of 5 seconds for safety
     delay_seconds = min(float(delay_seconds), 5.0)
 
-    if ctx:
-        await ctx.info(f"Echoing with {delay_seconds}s delay: {message[:50]}...")
+    logger.info(f"Echoing with {delay_seconds}s delay: {message[:50]}...")
 
     start_time = datetime.now(UTC)
     time.sleep(delay_seconds)
@@ -119,20 +113,18 @@ async def echo_with_delay(
 
 
 @mcp.tool()
-async def echo_json(data: dict[str, Any], ctx: Context | None = None) -> EchoJsonResponse:
+async def echo_json(data: dict[str, Any]) -> EchoJsonResponse:
     """Echo back structured JSON data with validation and analysis.
 
     Args:
         data: The JSON data to echo back
-        ctx: MCP context
 
     Returns:
         Echo response with data analysis
     """
     import json
 
-    if ctx:
-        await ctx.info(f"Echoing JSON data with {len(data)} keys...")
+    logger.info(f"Echoing JSON data with {len(data)} keys...")
 
     # Analyze the data structure
     analysis = DataAnalysis(
